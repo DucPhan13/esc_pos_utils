@@ -466,39 +466,57 @@ class Generator {
       throw Exception('Total columns width must be equal to 12');
     }
     bool isNextRow = false;
+    int nextColW = 0;
     List<PosColumn> nextRow = <PosColumn>[];
 
     for (int i = 0; i < cols.length; ++i) {
-      int colInd =
-          cols.sublist(0, i).fold(0, (int sum, col) => sum + col.width);
+      int colInd = cols.sublist(0, i).fold(0, (int sum, col) => sum + col.width);
       double charWidth = _getCharWidth(cols[i].styles);
       double fromPos = _colIndToPosition(colInd);
-      final double toPos =
-          _colIndToPosition(colInd + cols[i].width) - spaceBetweenRows;
+      final double toPos = _colIndToPosition(colInd + cols[i].width) - spaceBetweenRows;
       int maxCharactersNb = ((toPos - fromPos) / charWidth).floor();
 
       if (!cols[i].containsChinese) {
         // CASE 1: containsChinese = false
-        Uint8List encodedToPrint = cols[i].textEncoded != null
-            ? cols[i].textEncoded!
-            : _encode(cols[i].text);
-
+        Uint8List encodedToPrint = cols[i].textEncoded != null ? cols[i].textEncoded! : _encode(cols[i].text);
         // If the col's content is too long, split it to the next row
         int realCharactersNb = encodedToPrint.length;
         if (realCharactersNb > maxCharactersNb) {
+          int nonCol = cols.where((col) => !col.overridable).toList().fold(0, (int sum, col) => sum + col.width);
           // Print max possible and split to the next row
-          Uint8List encodedToPrintNextRow =
-              encodedToPrint.sublist(maxCharactersNb);
-          encodedToPrint = encodedToPrint.sublist(0, maxCharactersNb);
-          isNextRow = true;
+          int maxCharacterWrapped = getNewLineIndex(encodedToPrint, maxCharactersNb);
+          String marginString =
+          List.filled(cols[i].margin, ' ${cols[i].styles.width == PosTextSize.size1 ? ' ' : ''}').join();
+          List<List<int>> uInt8Lists = [_encode(marginString), encodedToPrint.sublist(maxCharacterWrapped)];
+          Uint8List encodedToPrintNextRow = Uint8List.fromList(uInt8Lists.expand((x) => x).toList());
+          encodedToPrint = encodedToPrint.sublist(0, maxCharacterWrapped);
+          isNextRow = !cols[i].truncatable;
+
+          nextColW = cols[i].width +
+              (i + 1 < cols.length
+                  ? cols[i + 1].overridable
+                  ? cols[i + 1].width
+                  : 0
+                  : 12 - nonCol - cols[i].width);
+
+          if (nextColW <= 0 || nextColW > 12) nextColW = cols[i].width;
+
           nextRow.add(PosColumn(
               textEncoded: encodedToPrintNextRow,
-              width: cols[i].width,
-              styles: cols[i].styles));
-        } else {
+              width: nextColW,
+              //cols[i].width - (cols.length == 2 ? cols[0].width : 0)
+              styles: cols[i].styles,
+              margin: cols[i].margin,
+              overridable: cols[i].overridable,
+              truncatable: cols[i].truncatable));
+        } else if (!cols[i].overridable) {
           // Insert an empty col
           nextRow.add(PosColumn(
-              text: '', width: cols[i].width, styles: cols[i].styles));
+              text: '',
+              width: cols[i].width,
+              styles: cols[i].styles,
+              overridable: cols[i].overridable,
+              truncatable: cols[i].truncatable));
         }
         // end rows splitting
         bytes += _text(
@@ -525,15 +543,11 @@ class Generator {
 
         if (toPrintNextRow.isNotEmpty) {
           isNextRow = true;
-          nextRow.add(PosColumn(
-              text: toPrintNextRow,
-              containsChinese: true,
-              width: cols[i].width,
-              styles: cols[i].styles));
+          nextRow.add(
+              PosColumn(text: toPrintNextRow, containsChinese: true, width: cols[i].width, styles: cols[i].styles));
         } else {
           // Insert an empty col
-          nextRow.add(PosColumn(
-              text: '', width: cols[i].width, styles: cols[i].styles));
+          nextRow.add(PosColumn(text: '', width: cols[i].width, styles: cols[i].styles));
         }
 
         // Print current row
@@ -551,7 +565,7 @@ class Generator {
             isKanji: isLexemeChinese[j],
           );
           // Define the absolute position only once (we print one line only)
-          // colInd = null;
+          colInd = 0;
         }
       }
     }
@@ -559,7 +573,7 @@ class Generator {
     bytes += emptyLines(1);
 
     if (isNextRow) {
-      row(nextRow);
+      bytes += row(nextRow);
     }
     return bytes;
   }
@@ -834,6 +848,31 @@ class Generator {
 
     bytes += emptyLines(linesAfter + 1);
     return bytes;
+  }
+
+  int getNewLineIndex(Uint8List input, int wrapLength) {
+    try {
+      String stringInput = String.fromCharCodes(input);
+      List<String> separatedWords = stringInput.split(' ');
+      StringBuffer intermediateText = StringBuffer();
+
+      for (String word in separatedWords) {
+        if ((intermediateText.length + word.length) > wrapLength) {
+          if (intermediateText.length == 0) {
+            return word.length;
+          } else {
+            return intermediateText.length;
+          }
+        } else {
+          intermediateText.write(' $word');
+        }
+      }
+
+      ///Write any remaining word at the end
+      return intermediateText.length;
+    } catch (e) {
+      return wrapLength;
+    }
   }
   // ************************ (end) Internal command generators ************************
 }

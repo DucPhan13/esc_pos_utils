@@ -19,6 +19,9 @@ class PosColumn {
     this.containsChinese = false,
     this.width = 2,
     this.styles = const PosStyles(),
+    this.margin = 0,
+    this.overridable = true,
+    this.truncatable = true,
   }) {
     if (width < 1 || width > 12) {
       throw Exception('Column width must be between 1..12');
@@ -37,4 +40,7 @@ class PosColumn {
   bool containsChinese;
   int width;
   PosStyles styles;
+  int margin;
+  bool overridable;
+  bool truncatable;
 }
