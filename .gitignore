@@ -1,5 +1,6 @@
 # Miscellaneous
 *.class
+*.lock
 *.log
 *.pyc
 *.swp
@@ -30,7 +31,6 @@
 .pub-cache/
 .pub/
 build/
-pubspec.lock
 
 # Android related
 **/android/**/gradle-wrapper.jar
