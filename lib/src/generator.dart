@@ -15,7 +15,6 @@ import 'package:hex/hex.dart';
 import 'package:image/image.dart';
 
 import 'commands.dart';
-import 'enums.dart';
 
 class Generator {
   Generator(this._paperSize, this._profile, {this.spaceBetweenRows = 5});
@@ -462,7 +461,7 @@ class Generator {
       double charWidth = _getCharWidth(cols[i].styles);
       double fromPos = _colIndToPosition(colInd);
       final double toPos = _colIndToPosition(colInd + cols[i].width) - spaceBetweenRows;
-      int maxCharactersNb = ((toPos - fromPos) / charWidth).floor();
+      int maxCharactersNb = ((toPos - fromPos) / charWidth).ceil();
 
       if (!cols[i].containsChinese) {
         // CASE 1: containsChinese = false
@@ -475,9 +474,12 @@ class Generator {
           int maxCharacterWrapped = getNewLineIndex(encodedToPrint, maxCharactersNb);
           String marginString =
               List.filled(cols[i].margin + 2, '${cols[i].styles.width == PosTextSize.size1 ? ' ' : ''}').join();
+          String paddingString = List.filled(maxCharactersNb - maxCharacterWrapped, ' ').join();
           List<List<int>> uInt8Lists = [_encode(marginString), encodedToPrint.sublist(maxCharacterWrapped)];
           Uint8List encodedToPrintNextRow = Uint8List.fromList(uInt8Lists.expand((x) => x).toList());
           encodedToPrint = encodedToPrint.sublist(0, maxCharacterWrapped);
+          List<List<int>> uInt8ToPrintLists = [encodedToPrint, _encode(paddingString)];
+          encodedToPrint = Uint8List.fromList(uInt8ToPrintLists.expand((x) => x).toList());
           isNextRow = !cols[i].truncatable;
 
           nextColW = cols[i].width +
@@ -842,7 +844,7 @@ class Generator {
       StringBuffer intermediateText = StringBuffer();
 
       for (String word in separatedWords) {
-        if ((intermediateText.length + word.length) > wrapLength) {
+        if ((intermediateText.length + word.length) > (wrapLength - 1)) {
           if (intermediateText.length == 0) {
             return word.length;
           } else {

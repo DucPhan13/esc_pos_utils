@@ -7,7 +7,7 @@
  */
 
 import 'dart:convert' show json;
-import 'dart:convert' show utf8;
+
 import 'package:flutter/services.dart' show rootBundle;
 
 class CodePage {
@@ -16,10 +16,7 @@ class CodePage {
 
   CodePage(this.id, this.name);
 
-  Map toJson() => {
-        'id': id,
-        'name': name,
-      };
+  Map toJson() => {'id': id, 'name': name};
 }
 
 class CapabilityProfile {
