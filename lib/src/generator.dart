@@ -846,7 +846,7 @@ class Generator {
       for (String word in separatedWords) {
         if ((intermediateText.length + word.length) > (wrapLength - 1)) {
           if (intermediateText.length == 0) {
-            return word.length;
+            return wrapLength;
           } else {
             return intermediateText.length;
           }
