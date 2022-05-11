@@ -492,21 +492,30 @@ class Generator {
           if (nextColW <= 0 || nextColW > 12) {
             nextColW = cols[i].width;
           }
-          nextRow.add(PosColumn(
-              textEncoded: encodedToPrintNextRow,
-              width: nextColW,
-              styles: cols[i].styles,
-              margin: cols[i].margin,
-              overridable: cols[i].overridable,
-              truncatable: cols[i].truncatable));
+
+          if (i + 1 < cols.length) {
+            nextRow.add(
+              PosColumn(
+                textEncoded: encodedToPrintNextRow,
+                width: nextColW,
+                styles: cols[i].styles,
+                margin: cols[i].margin,
+                overridable: cols[i].overridable,
+                truncatable: cols[i].truncatable,
+              ),
+            );
+          }
         } else if (!cols[i].overridable) {
           // Insert an empty col
-          nextRow.add(PosColumn(
+          nextRow.add(
+            PosColumn(
               text: '',
               width: cols[i].width,
               styles: cols[i].styles,
               overridable: cols[i].overridable,
-              truncatable: cols[i].truncatable));
+              truncatable: cols[i].truncatable,
+            ),
+          );
         }
         // end rows splitting
         bytes += _text(
@@ -545,7 +554,7 @@ class Generator {
         final List<String> lexemes = list[0];
         final List<bool> isLexemeChinese = list[1];
 
-        // Print each lexeme using codetable OR kanji
+        // Print each lexeme using code table OR kanji
         for (var j = 0; j < lexemes.length; ++j) {
           bytes += _text(
             _encode(lexemes[j], isKanji: isLexemeChinese[j]),
